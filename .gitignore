@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Випадковий вивід tsc у вихідних каталогах libs (має бути лише dist/)
+libs/**/src/**/*.js
+libs/**/src/**/*.js.map
