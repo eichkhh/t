@@ -28,6 +28,32 @@ services:
       elasticsearch:
         condition: service_healthy
 
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '9090:9090'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    ports:
+      - '3100:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
   jaeger:
     image: jaegertracing/all-in-one:1.57
     environment:
@@ -111,8 +137,10 @@ services:
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: '5044'
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      METRICS_PORT: '9464'
     ports:
       - '3001:3001'
+      - '9465:9464'
     depends_on:
       postgres:
         condition: service_healthy
@@ -142,8 +170,10 @@ services:
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: '5044'
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      METRICS_PORT: '9464'
     ports:
       - '3002:3002'
+      - '9466:9464'
     depends_on:
       redis:
         condition: service_healthy
@@ -170,8 +200,10 @@ services:
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: '5044'
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      METRICS_PORT: '9464'
     ports:
       - '3000:3000'
+      - '9464:9464'
     depends_on:
       user-service:
         condition: service_healthy
@@ -187,3 +219,4 @@ services:
 volumes:
   pgdata:
   esdata:
+  grafana-data:

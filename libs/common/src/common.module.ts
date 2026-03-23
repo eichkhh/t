@@ -1,5 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { AppLogger } from './observability/app-logger';
+import { AppMetrics } from './observability/app-metrics';
 
 @Module({})
 export class ObrioCommonModule {
@@ -16,8 +17,9 @@ export class ObrioCommonModule {
           provide: AppLogger,
           useFactory: () => new AppLogger(serviceName),
         },
+        AppMetrics,
       ],
-      exports: [AppLogger, 'SERVICE_NAME'],
+      exports: [AppLogger, AppMetrics, 'SERVICE_NAME'],
     };
   }
 }

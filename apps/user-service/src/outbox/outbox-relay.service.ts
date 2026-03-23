@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { type OtelCarrier, runWithOtelContext } from '@shared/common';
-import { AppLogger } from '@shared/common';
+import {
+  AppLogger,
+  AppMetrics,
+  type OtelCarrier,
+  runWithOtelContext,
+} from '@shared/common';
 import { UserServiceConfigService } from '../config/user-service-config.service';
 import type { IEventPublisher } from './interfaces/event-publisher.interface';
 import { EVENT_PUBLISHER } from './interfaces/event-publisher.interface';
@@ -24,6 +28,7 @@ export class OutboxRelayService {
     @Inject(EVENT_PUBLISHER)
     private readonly publisher: IEventPublisher,
     private readonly logger: AppLogger,
+    private readonly metrics: AppMetrics,
     private readonly config: UserServiceConfigService,
   ) {
     this.batchSize = this.config.outboxBatchSize;
@@ -36,7 +41,9 @@ export class OutboxRelayService {
       this.logger.warn('relayBatch skipped: previous run still in progress');
       return;
     }
+
     this.isBatchInProgress = true;
+
     try {
       const rows = await this.relayRepo.claimPending(this.batchSize);
 
@@ -53,12 +60,14 @@ export class OutboxRelayService {
                 await this.publisher.publish(row);
                 await this.relayRepo.markProcessed(row.id);
 
+                this.metrics.outboxRelayTotal.add(1, { status: 'success' });
                 this.logger.log('Outbox published to RabbitMQ', {
                   outboxId: row.id,
                 });
               } catch (err) {
                 await this.relayRepo.requeue(row.id, this.maxAttempts);
 
+                this.metrics.outboxRelayTotal.add(1, { status: 'failed' });
                 this.logger.error('Outbox relay failed', {
                   outboxId: row.id,
                   stack: err instanceof Error ? err.stack : String(err),
@@ -82,6 +91,8 @@ export class OutboxRelayService {
         this.processingTtlSeconds,
       );
       if (recovered.length > 0) {
+        this.metrics.outboxRecoveredTotal.add(recovered.length);
+
         this.logger.warn('Recovered stuck outbox rows', {
           count: recovered.length,
           outboxIds: recovered.map((r) => r.id),

@@ -2,6 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AppLogger,
+  AppMetrics,
   runWithOtelContext,
   type OtelCarrier,
 } from '@shared/common';
@@ -23,6 +24,7 @@ export class WelcomeProcessor extends WorkerHost {
   constructor(
     @Inject(PUSH_SERVICE) private readonly push: IPushService,
     private readonly logger: AppLogger,
+    private readonly metrics: AppMetrics,
   ) {
     super();
   }
@@ -37,9 +39,14 @@ export class WelcomeProcessor extends WorkerHost {
       async () => {
         this.logger.log('Welcome job start', { jobId: job.id, userId });
 
-        await this.push.sendWelcome(userId, userName);
-
-        this.logger.log('Welcome push completed', { jobId: job.id, userId });
+        try {
+          await this.push.sendWelcome(userId, userName);
+          this.metrics.welcomePushTotal.add(1, { status: 'success' });
+          this.logger.log('Welcome push completed', { jobId: job.id, userId });
+        } catch (err) {
+          this.metrics.welcomePushTotal.add(1, { status: 'failed' });
+          throw err;
+        }
       },
     );
   }

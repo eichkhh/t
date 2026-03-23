@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AppLogger, type IUnitOfWork, UNIT_OF_WORK } from '@shared/common';
+import {
+  AppLogger,
+  AppMetrics,
+  type IUnitOfWork,
+  UNIT_OF_WORK,
+} from '@shared/common';
 import {
   OutboxEventType,
   RegisterUserDto,
@@ -19,6 +24,7 @@ export class UsersService implements IUsersService {
     @Inject(TRANSACTIONAL_EVENT_PUBLISHER)
     private readonly eventPublisher: ITransactionalEventPublisher,
     private readonly logger: AppLogger,
+    private readonly metrics: AppMetrics,
   ) {}
 
   async register(data: RegisterUserDto): Promise<RegisterUserResponse> {
@@ -33,6 +39,7 @@ export class UsersService implements IUsersService {
       return { id: user.id, name: user.name };
     });
 
+    this.metrics.registrationsTotal.add(1);
     this.logger.log('User registered', {
       userId: result.id,
       name: result.name,

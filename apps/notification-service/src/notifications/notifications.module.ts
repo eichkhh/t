@@ -10,6 +10,7 @@ import {
 import { MessageHandlerRegistry } from '../rabbitmq/message-handler.registry';
 import { RabbitConsumerService } from '../rabbitmq/rabbit-consumer.service';
 import { RabbitMQModule } from '../rabbitmq/rabbit-mq.module';
+import { BullMetricsService } from './bull-metrics.service';
 import { UserRegisteredHandler } from './handlers/user-registered.handler';
 import { PUSH_SERVICE } from './interfaces/push.interface';
 import { WelcomeProcessor } from './processors/welcome.processor';
@@ -28,6 +29,7 @@ import { WebhookPushService } from './providers/webhook-push.service';
     WebhookPushService,
     { provide: PUSH_SERVICE, useExisting: WebhookPushService },
     WelcomeProcessor,
+    BullMetricsService,
     UserRegisteredHandler,
     {
       provide: MESSAGE_HANDLERS,
