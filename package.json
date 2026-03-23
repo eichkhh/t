@@ -7,9 +7,16 @@
   "license": "UNLICENSED",
   "scripts": {
     "build:docker:api-gateway": "nest build api-gateway && mkdir -p dist/apps/api-gateway/apps/api-gateway/proto && cp libs/contracts/src/proto/*.proto dist/apps/api-gateway/apps/api-gateway/proto/",
+    "build:docker:user-service": "nest build user-service && mkdir -p dist/apps/user-service/apps/user-service/proto && cp libs/contracts/src/proto/*.proto dist/apps/user-service/apps/user-service/proto/",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start:api-gateway": "nest start api-gateway",
     "start:api-gateway:dev": "nest start api-gateway --watch",
+    "start:user-service": "nest start user-service",
+    "start:user-service:dev": "nest start user-service --watch",
+    "typeorm": "ts-node --project apps/user-service/tsconfig.app.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "migration:generate": "npm run typeorm -- migration:generate -d apps/user-service/data-source.ts",
+    "migration:run": "npm run typeorm -- migration:run -d apps/user-service/data-source.ts",
+    "migration:revert": "npm run typeorm -- migration:revert -d apps/user-service/data-source.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
   },
   "dependencies": {
@@ -20,16 +27,23 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/microservices": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^5.0.1",
+    "@nestjs/typeorm": "^11.0.0",
+    "amqp-connection-manager": "^4.1.14",
+    "amqplib": "^0.10.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "pg": "^8.13.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.20"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
+    "@types/amqplib": "^0.10.6",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.7",
     "eslint": "^9.18.0",

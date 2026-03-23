@@ -27,6 +27,22 @@
         ]
       }
     },
+    "user-service": {
+      "type": "application",
+      "root": "apps/user-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/user-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/user-service/tsconfig.app.json",
+        "assets": [
+          {
+            "include": "../../libs/contracts/src/proto/**/*.proto",
+            "outDir": "apps/user-service/proto",
+            "watchAssets": true
+          }
+        ]
+      }
+    },
     "common": {
       "type": "library",
       "root": "libs/common",
