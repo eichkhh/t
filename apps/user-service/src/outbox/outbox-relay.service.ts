@@ -49,14 +49,16 @@ export class OutboxRelayService {
               await this.publisher.publish(row);
               await this.relayRepo.markProcessed(row.id);
 
-              this.logger.log(`Outbox ${row.id} published to RabbitMQ`);
+              this.logger.log('Outbox published to RabbitMQ', {
+                outboxId: row.id,
+              });
             } catch (err) {
               await this.relayRepo.requeue(row.id, this.maxAttempts);
 
-              this.logger.error(
-                `Outbox relay failed for ${row.id}`,
-                err instanceof Error ? err.stack : String(err),
-              );
+              this.logger.error('Outbox relay failed', {
+                outboxId: row.id,
+                stack: err instanceof Error ? err.stack : String(err),
+              });
             }
           });
         }),
@@ -75,9 +77,10 @@ export class OutboxRelayService {
         this.processingTtlSeconds,
       );
       if (recovered.length > 0) {
-        this.logger.warn(
-          `Recovered ${recovered.length} stuck outbox rows: ${recovered.map((r) => r.id).join(', ')}`,
-        );
+        this.logger.warn('Recovered stuck outbox rows', {
+          count: recovered.length,
+          outboxIds: recovered.map((r) => r.id),
+        });
       }
     } finally {
       this.isRecoverInProgress = false;

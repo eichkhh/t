@@ -23,11 +23,14 @@ export class UsersController implements OnModuleInit {
 
   @Post('register')
   async register(@Body() body: RegisterUserDto): Promise<RegisterUserResponse> {
-    this.logger.log(`Register request name=${body.name}`);
+    this.logger.log('Register request', { name: body.name });
 
     const result = await firstValueFrom(this.userService.register(body));
 
-    this.logger.log(`Register success userId=${result.id} name=${result.name}`);
+    this.logger.log('Register success', {
+      userId: result.id,
+      name: result.name,
+    });
     return result;
   }
 }

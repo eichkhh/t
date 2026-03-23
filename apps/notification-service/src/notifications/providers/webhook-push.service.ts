@@ -11,7 +11,7 @@ export class WebhookPushService implements IPushService {
   ) {}
 
   async sendWelcome(userId: string, name: string): Promise<void> {
-    this.logger.log(`Sending welcome push userId=${userId}`);
+    this.logger.log('Sending welcome push', { userId });
 
     await this.client.post({
       event: 'welcome_push',
@@ -20,6 +20,6 @@ export class WebhookPushService implements IPushService {
       sentAt: new Date().toISOString(),
     });
 
-    this.logger.log(`Welcome push delivered userId=${userId}`);
+    this.logger.log('Welcome push delivered', { userId });
   }
 }

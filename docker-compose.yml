@@ -1,6 +1,51 @@
 name: test
 
 services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - '9200:9200'
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:9200/_cluster/health | grep -qE "\"status\":\"(green|yellow)\""']
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 40s
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - '5601:5601'
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.4
+    volumes:
+      - ./infra/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - '5044:5044'
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+      - XPACK_MONITORING_ENABLED=false
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:9600/_node/stats || exit 1']
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
   postgres:
     image: postgres:16-alpine
     environment:
@@ -55,12 +100,16 @@ services:
       USER_SERVICE_HTTP_PORT: '3001'
       GRPC_PORT: '50051'
       RABBITMQ_URL: amqp://test:test@rabbitmq:5672
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: '5044'
     ports:
       - '3001:3001'
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      logstash:
         condition: service_healthy
     healthcheck:
       test: ['CMD', 'node', '/usr/src/app/scripts/docker-healthcheck.js', '3001']
@@ -81,12 +130,16 @@ services:
       RABBITMQ_URL: amqp://test:test@rabbitmq:5672
       NOTIFICATION_SERVICE_HTTP_PORT: '3002'
       PUSH_WEBHOOK_URL: https://webhook.site/2321676d-5ea8-4468-a88f-3a7098616880
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: '5044'
     ports:
       - '3002:3002'
     depends_on:
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      logstash:
         condition: service_healthy
     healthcheck:
       test: ['CMD', 'node', '/usr/src/app/scripts/docker-healthcheck.js', '3002']
@@ -104,10 +157,14 @@ services:
     environment:
       USER_SERVICE_GRPC_URL: user-service:50051
       API_GATEWAY_HTTP_PORT: '3000'
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: '5044'
     ports:
       - '3000:3000'
     depends_on:
       user-service:
+        condition: service_healthy
+      logstash:
         condition: service_healthy
     healthcheck:
       test: ['CMD', 'node', '/usr/src/app/scripts/docker-healthcheck.js', '3000']
@@ -118,3 +175,4 @@ services:
 
 volumes:
   pgdata:
+  esdata:

@@ -11,8 +11,9 @@ import { AppModule } from './app.module';
 import { UserServiceConfigService } from './config/user-service-config.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const logger = app.get(AppLogger);
+  app.useLogger(logger);
   const configService = app.get(UserServiceConfigService);
 
   app.useGlobalPipes(

@@ -9,8 +9,9 @@ import { AppModule } from './app.module';
 import { NotificationServiceConfigService } from './config/notification-service-config.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const logger = app.get(AppLogger);
+  app.useLogger(logger);
   const configService = app.get(NotificationServiceConfigService);
 
   app.useGlobalPipes(

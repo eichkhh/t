@@ -43,8 +43,6 @@ export class UserRegisteredHandler implements IMessageHandler {
       },
     );
 
-    this.logger.log(
-      `Welcome job queued userId=${payload.userId} jobId=${jobId}`,
-    );
+    this.logger.log('Welcome job queued', { userId: payload.userId, jobId });
   }
 }

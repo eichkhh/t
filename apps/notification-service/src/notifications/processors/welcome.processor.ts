@@ -25,13 +25,11 @@ export class WelcomeProcessor extends WorkerHost {
     const { userId, userName, correlationId } = job.data;
 
     await runWithCorrelation(correlationId, async () => {
-      this.logger.log(`Welcome job start jobId=${job.id} userId=${userId}`);
+      this.logger.log('Welcome job start', { jobId: job.id, userId });
 
       await this.push.sendWelcome(userId, userName);
 
-      this.logger.log(
-        `Welcome push completed jobId=${job.id} userId=${userId}`,
-      );
+      this.logger.log('Welcome push completed', { jobId: job.id, userId });
     });
   }
 }

@@ -33,7 +33,10 @@ export class UsersService implements IUsersService {
       return { id: user.id, name: user.name };
     });
 
-    this.logger.log(`User registered id=${result.id} name=${result.name}`);
+    this.logger.log('User registered', {
+      userId: result.id,
+      name: result.name,
+    });
     return result;
   }
 }
