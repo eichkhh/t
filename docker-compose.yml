@@ -69,6 +69,32 @@ services:
       retries: 10
       start_period: 40s
 
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: notification-service
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      RABBITMQ_URL: amqp://test:test@rabbitmq:5672
+      NOTIFICATION_SERVICE_HTTP_PORT: '3002'
+      PUSH_WEBHOOK_URL: https://webhook.site/2321676d-5ea8-4468-a88f-3a7098616880
+    ports:
+      - '3002:3002'
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '/usr/src/app/scripts/docker-healthcheck.js', '3002']
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+
   api-gateway:
     build:
       context: .
