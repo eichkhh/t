@@ -1,6 +1,6 @@
 import { Injectable, LoggerService } from '@nestjs/common';
+import { trace } from '@opentelemetry/api';
 import * as winston from 'winston';
-import { getCorrelationId } from '../context/correlation-context';
 import { LogstashTcpTransport } from './logstash-tcp.transport';
 
 type Meta = Record<string, unknown>;
@@ -94,8 +94,12 @@ export class AppLogger implements LoggerService {
   }
 
   private buildBase(context?: string): Meta {
+    const spanContext = trace.getActiveSpan()?.spanContext();
+
     return {
-      correlationId: getCorrelationId() ?? 'n/a',
+      ...(spanContext
+        ? { traceId: spanContext.traceId, spanId: spanContext.spanId }
+        : {}),
       ...(context ? { context } : {}),
     };
   }

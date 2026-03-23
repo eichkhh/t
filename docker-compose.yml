@@ -28,6 +28,14 @@ services:
       elasticsearch:
         condition: service_healthy
 
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - '16686:16686'
+      - '4318:4318'
+
   logstash:
     image: docker.elastic.co/logstash/logstash:8.13.4
     volumes:
@@ -102,6 +110,7 @@ services:
       RABBITMQ_URL: amqp://test:test@rabbitmq:5672
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: '5044'
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     ports:
       - '3001:3001'
     depends_on:
@@ -132,6 +141,7 @@ services:
       PUSH_WEBHOOK_URL: https://webhook.site/2321676d-5ea8-4468-a88f-3a7098616880
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: '5044'
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     ports:
       - '3002:3002'
     depends_on:
@@ -159,6 +169,7 @@ services:
       API_GATEWAY_HTTP_PORT: '3000'
       LOGSTASH_HOST: logstash
       LOGSTASH_PORT: '5044'
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     ports:
       - '3000:3000'
     depends_on:

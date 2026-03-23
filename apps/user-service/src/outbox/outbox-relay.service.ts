@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AppLogger, runWithCorrelation } from '@shared/common';
-import { randomUUID } from 'node:crypto';
+import { type OtelCarrier, runWithOtelContext } from '@shared/common';
+import { AppLogger } from '@shared/common';
 import { UserServiceConfigService } from '../config/user-service-config.service';
 import type { IEventPublisher } from './interfaces/event-publisher.interface';
 import { EVENT_PUBLISHER } from './interfaces/event-publisher.interface';
@@ -8,6 +8,7 @@ import type { IOutboxRelayRepository } from './interfaces/outbox-relay-repositor
 import { OUTBOX_RELAY_REPOSITORY } from './interfaces/outbox-relay-repository.interface';
 
 const DEFAULT_MAX_ATTEMPTS = 5;
+const TRACER_NAME = 'user-service';
 
 @Injectable()
 export class OutboxRelayService {
@@ -41,26 +42,30 @@ export class OutboxRelayService {
 
       await Promise.allSettled(
         rows.map((row) => {
-          const correlationId =
-            (row.metadata?.correlationId as string | undefined) ?? randomUUID();
+          const carrier = (row.metadata?.otelCarrier ?? {}) as OtelCarrier;
 
-          return runWithCorrelation(correlationId, async () => {
-            try {
-              await this.publisher.publish(row);
-              await this.relayRepo.markProcessed(row.id);
+          return runWithOtelContext(
+            carrier,
+            'outbox.relay',
+            TRACER_NAME,
+            async () => {
+              try {
+                await this.publisher.publish(row);
+                await this.relayRepo.markProcessed(row.id);
 
-              this.logger.log('Outbox published to RabbitMQ', {
-                outboxId: row.id,
-              });
-            } catch (err) {
-              await this.relayRepo.requeue(row.id, this.maxAttempts);
+                this.logger.log('Outbox published to RabbitMQ', {
+                  outboxId: row.id,
+                });
+              } catch (err) {
+                await this.relayRepo.requeue(row.id, this.maxAttempts);
 
-              this.logger.error('Outbox relay failed', {
-                outboxId: row.id,
-                stack: err instanceof Error ? err.stack : String(err),
-              });
-            }
-          });
+                this.logger.error('Outbox relay failed', {
+                  outboxId: row.id,
+                  stack: err instanceof Error ? err.stack : String(err),
+                });
+              }
+            },
+          );
         }),
       );
     } finally {

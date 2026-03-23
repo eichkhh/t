@@ -1,6 +1,5 @@
 export * from './common.module';
 export * from './config/env.validation';
-export * from './context/correlation-context';
 export * from './database/index';
 export * from './observability/app-logger';
 export * from './rabbitmq/index';

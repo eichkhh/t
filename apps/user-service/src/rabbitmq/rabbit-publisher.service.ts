@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { amqpCorrelationHeaders } from '@shared/common';
+import { injectOtelContext } from '@shared/common';
 import { OutboxEventType } from '@shared/contracts';
 import type { IEventPublisher } from '../outbox/interfaces/event-publisher.interface';
 import type { OutboxRow } from '../outbox/interfaces/outbox-row.interface';
@@ -23,7 +23,7 @@ export class RabbitPublisherService implements IEventPublisher {
       {
         persistent: true,
         contentType: 'application/json',
-        headers: amqpCorrelationHeaders(),
+        headers: injectOtelContext(),
       },
     );
   }

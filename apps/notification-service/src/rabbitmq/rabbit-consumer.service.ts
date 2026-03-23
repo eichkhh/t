@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { AppLogger, runWithAmqpCorrelation } from '@shared/common';
+import { context, propagation } from '@opentelemetry/api';
+import { AppLogger } from '@shared/common';
 import { USER_REGISTERED_QUEUE } from '@shared/contracts';
 import type { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import { NotificationServiceConfigService } from '../config/notification-service-config.service';
@@ -44,9 +45,10 @@ export class RabbitConsumerService implements OnModuleInit {
     channel: ConfirmChannel,
     msg: ConsumeMessage,
   ): Promise<void> {
-    const headers = (msg.properties.headers ?? {}) as Record<string, unknown>;
+    const carrier = (msg.properties.headers ?? {}) as Record<string, string>;
+    const parentCtx = propagation.extract(context.active(), carrier);
 
-    await runWithAmqpCorrelation(headers, async () => {
+    await context.with(parentCtx, async () => {
       try {
         const { eventType, payload } = JSON.parse(
           msg.content.toString(),

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { getCorrelationId } from '@shared/common';
+import { injectOtelContext } from '@shared/common';
 import type { OutboxEventType } from '@shared/contracts';
 import { OutboxStatus } from './enums/outbox-status.enum';
 import type { IOutboxRepository } from './interfaces/outbox-repository.interface';
@@ -14,12 +14,10 @@ export class OutboxEventPublisher implements ITransactionalEventPublisher {
   ) {}
 
   async publish(type: OutboxEventType, payload: unknown): Promise<void> {
-    const correlationId = getCorrelationId();
-
     await this.outboxRepo.create({
       type,
       payloadJson: payload,
-      metadata: correlationId ? { correlationId } : null,
+      metadata: { otelCarrier: injectOtelContext() },
       status: OutboxStatus.PENDING,
       attempts: 0,
       processedAt: null,

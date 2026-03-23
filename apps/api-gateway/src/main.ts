@@ -1,10 +1,7 @@
+import './instrument';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import {
-  AppLogger,
-  CorrelationMiddleware,
-  registerGracefulShutdown,
-} from '@shared/common';
+import { AppLogger, registerGracefulShutdown } from '@shared/common';
 import { AppModule } from './app.module';
 import { ApiGatewayConfigService } from './config/api-gateway-config.service';
 
@@ -22,9 +19,6 @@ async function bootstrap() {
   );
 
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
-
-  const correlationMiddleware = new CorrelationMiddleware();
-  app.use(correlationMiddleware.use.bind(correlationMiddleware));
 
   registerGracefulShutdown(app, logger);
 

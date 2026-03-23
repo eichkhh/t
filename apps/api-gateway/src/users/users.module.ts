@@ -1,10 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import {
-  DEFAULT_DEADLINE_MS,
-  grpcCorrelationInterceptor,
-  grpcDeadlineInterceptor,
-} from '@shared/common';
+import { DEFAULT_DEADLINE_MS, grpcDeadlineInterceptor } from '@shared/common';
 import { join } from 'node:path';
 import { ApiGatewayConfigService } from '../config/api-gateway-config.service';
 import { ApiGatewayConfigModule } from '../config/config.module';
@@ -30,10 +26,7 @@ import { UsersController } from './users.controller';
             ),
             url: configService.userServiceGrpcUrl,
             channelOptions: {
-              interceptors: [
-                grpcCorrelationInterceptor,
-                grpcDeadlineInterceptor(DEFAULT_DEADLINE_MS),
-              ],
+              interceptors: [grpcDeadlineInterceptor(DEFAULT_DEADLINE_MS)],
             },
           },
         }),

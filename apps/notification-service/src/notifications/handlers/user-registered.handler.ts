@@ -1,13 +1,12 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
-import { AppLogger, getCorrelationId } from '@shared/common';
+import { AppLogger, injectOtelContext } from '@shared/common';
 import {
   OutboxEventType,
   WELCOME_QUEUE,
   type UserRegisteredPayload,
 } from '@shared/contracts';
 import type { Queue } from 'bullmq';
-import { randomUUID } from 'node:crypto';
 import { NotificationServiceConfigService } from '../../config/notification-service-config.service';
 import type { IMessageHandler } from '../../rabbitmq/interfaces/message-handler.interface';
 import type { WelcomeJobData } from '../processors/welcome.processor';
@@ -31,7 +30,7 @@ export class UserRegisteredHandler implements IMessageHandler {
       {
         userId: payload.userId,
         userName: payload.name,
-        correlationId: getCorrelationId() ?? randomUUID(),
+        otelCarrier: injectOtelContext(),
       },
       {
         jobId,
