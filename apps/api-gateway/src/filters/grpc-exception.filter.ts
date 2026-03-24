@@ -6,7 +6,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { AppLogger } from '@shared/common';
+import { AppLogger, ScopedLogger } from '@shared/common';
 import type { Response } from 'express';
 
 const GRPC_TO_HTTP: Record<number, HttpStatus> = {
@@ -32,7 +32,11 @@ interface GrpcError {
 
 @Catch()
 export class GrpcExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logger: AppLogger) {}
+  private readonly logger: ScopedLogger;
+
+  constructor(logger: AppLogger) {
+    this.logger = logger.withContext(GrpcExceptionFilter.name);
+  }
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();

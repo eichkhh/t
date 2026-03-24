@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AppLogger } from '@shared/common';
+import { AppLogger, ScopedLogger } from '@shared/common';
 import {
   MESSAGE_HANDLERS,
   type IMessageHandler,
@@ -8,11 +8,13 @@ import {
 @Injectable()
 export class MessageHandlerRegistry {
   private readonly handlerMap: ReadonlyMap<string, IMessageHandler>;
+  private readonly logger: ScopedLogger;
 
   constructor(
     @Inject(MESSAGE_HANDLERS) handlers: IMessageHandler[],
-    private readonly logger: AppLogger,
+    logger: AppLogger,
   ) {
+    this.logger = logger.withContext(MessageHandlerRegistry.name);
     this.handlerMap = new Map(handlers.map((h) => [h.eventType, h]));
   }
 

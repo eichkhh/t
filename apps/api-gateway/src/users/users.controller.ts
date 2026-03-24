@@ -1,6 +1,6 @@
 import { Body, Controller, Inject, OnModuleInit, Post } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
-import { AppLogger } from '@shared/common';
+import { AppLogger, ScopedLogger } from '@shared/common';
 import { RegisterUserDto, RegisterUserResponse } from '@shared/contracts';
 import { firstValueFrom, type Observable } from 'rxjs';
 
@@ -11,11 +11,14 @@ interface IUserServiceGrpc {
 @Controller({ path: 'users', version: '1' })
 export class UsersController implements OnModuleInit {
   private userService!: IUserServiceGrpc;
+  private readonly logger: ScopedLogger;
 
   constructor(
     @Inject('USER_SERVICE_GRPC') private readonly client: ClientGrpc,
-    private readonly logger: AppLogger,
-  ) {}
+    logger: AppLogger,
+  ) {
+    this.logger = logger.withContext(UsersController.name);
+  }
 
   onModuleInit(): void {
     this.userService = this.client.getService<IUserServiceGrpc>('UserService');

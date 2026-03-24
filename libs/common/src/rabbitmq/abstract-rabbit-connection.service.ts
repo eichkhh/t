@@ -5,7 +5,7 @@ import {
   type ChannelWrapper,
 } from 'amqp-connection-manager';
 import type { ConfirmChannel } from 'amqplib';
-import { AppLogger } from '../observability/app-logger';
+import { AppLogger, ScopedLogger } from '../observability/app-logger';
 
 @Injectable()
 export abstract class AbstractRabbitConnectionService
@@ -14,7 +14,11 @@ export abstract class AbstractRabbitConnectionService
   private connection!: AmqpConnectionManager;
   private _channelWrapper!: ChannelWrapper;
 
-  constructor(protected readonly logger: AppLogger) {}
+  protected readonly logger: ScopedLogger;
+
+  constructor(logger: AppLogger) {
+    this.logger = logger.withContext(this.constructor.name);
+  }
 
   get channelWrapper(): ChannelWrapper {
     return this._channelWrapper;

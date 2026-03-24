@@ -4,6 +4,7 @@ import {
   AppMetrics,
   type OtelCarrier,
   runWithOtelContext,
+  ScopedLogger,
 } from '@shared/common';
 import { UserServiceConfigService } from '../config/user-service-config.service';
 import type { IEventPublisher } from './interfaces/event-publisher.interface';
@@ -16,6 +17,7 @@ const TRACER_NAME = 'user-service';
 
 @Injectable()
 export class OutboxRelayService {
+  private readonly logger: ScopedLogger;
   private readonly batchSize: number;
   private readonly maxAttempts: number;
   private readonly processingTtlSeconds: number;
@@ -27,10 +29,11 @@ export class OutboxRelayService {
     private readonly relayRepo: IOutboxRelayRepository,
     @Inject(EVENT_PUBLISHER)
     private readonly publisher: IEventPublisher,
-    private readonly logger: AppLogger,
+    logger: AppLogger,
     private readonly metrics: AppMetrics,
     private readonly config: UserServiceConfigService,
   ) {
+    this.logger = logger.withContext(OutboxRelayService.name);
     this.batchSize = this.config.outboxBatchSize;
     this.maxAttempts = DEFAULT_MAX_ATTEMPTS;
     this.processingTtlSeconds = this.config.outboxProcessingTtlSeconds;

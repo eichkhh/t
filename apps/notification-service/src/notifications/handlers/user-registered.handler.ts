@@ -1,6 +1,6 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
-import { AppLogger, injectOtelContext } from '@shared/common';
+import { AppLogger, injectOtelContext, ScopedLogger } from '@shared/common';
 import {
   OutboxEventType,
   WELCOME_QUEUE,
@@ -14,13 +14,16 @@ import type { WelcomeJobData } from '../processors/welcome.processor';
 @Injectable()
 export class UserRegisteredHandler implements IMessageHandler {
   readonly eventType = OutboxEventType.USER_REGISTERED as string;
+  private readonly logger: ScopedLogger;
 
   constructor(
     @InjectQueue(WELCOME_QUEUE)
     private readonly welcomeQueue: Queue<WelcomeJobData>,
-    private readonly logger: AppLogger,
+    logger: AppLogger,
     private readonly config: NotificationServiceConfigService,
-  ) {}
+  ) {
+    this.logger = logger.withContext(UserRegisteredHandler.name);
+  }
 
   async handle(payload: UserRegisteredPayload): Promise<void> {
     const jobId = `welcome_push_${payload.userId}`;

@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { context, propagation } from '@opentelemetry/api';
-import { AppLogger } from '@shared/common';
+import { AppLogger, ScopedLogger } from '@shared/common';
 import { USER_REGISTERED_QUEUE } from '@shared/contracts';
 import type { ConfirmChannel, ConsumeMessage } from 'amqplib';
 import { NotificationServiceConfigService } from '../config/notification-service-config.service';
@@ -14,12 +14,16 @@ interface DomainMessage {
 
 @Injectable()
 export class RabbitConsumerService implements OnModuleInit {
+  private readonly logger: ScopedLogger;
+
   constructor(
     private readonly rabbitConnection: RabbitConnectionService,
     private readonly registry: MessageHandlerRegistry,
-    private readonly logger: AppLogger,
+    logger: AppLogger,
     private readonly config: NotificationServiceConfigService,
-  ) {}
+  ) {
+    this.logger = logger.withContext(RabbitConsumerService.name);
+  }
 
   async onModuleInit(): Promise<void> {
     await this.rabbitConnection.channelWrapper.addSetup(

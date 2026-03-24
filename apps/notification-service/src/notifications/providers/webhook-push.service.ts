@@ -1,14 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { AppLogger } from '@shared/common';
+import { AppLogger, ScopedLogger } from '@shared/common';
 import type { IPushService } from '../interfaces/push.interface';
 import { PushHttpClient } from './push-http.client';
 
 @Injectable()
 export class WebhookPushService implements IPushService {
+  private readonly logger: ScopedLogger;
+
   constructor(
     private readonly client: PushHttpClient,
-    private readonly logger: AppLogger,
-  ) {}
+    logger: AppLogger,
+  ) {
+    this.logger = logger.withContext(WebhookPushService.name);
+  }
 
   async sendWelcome(userId: string, name: string): Promise<void> {
     this.logger.log('Sending welcome push', { userId });

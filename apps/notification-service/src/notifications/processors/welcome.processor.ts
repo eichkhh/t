@@ -4,6 +4,7 @@ import {
   AppLogger,
   AppMetrics,
   runWithOtelContext,
+  ScopedLogger,
   type OtelCarrier,
 } from '@shared/common';
 import { WELCOME_QUEUE } from '@shared/contracts';
@@ -21,12 +22,15 @@ const TRACER_NAME = 'notification-service';
 @Injectable()
 @Processor(WELCOME_QUEUE, { concurrency: 10 })
 export class WelcomeProcessor extends WorkerHost {
+  private readonly logger: ScopedLogger;
+
   constructor(
     @Inject(PUSH_SERVICE) private readonly push: IPushService,
-    private readonly logger: AppLogger,
+    logger: AppLogger,
     private readonly metrics: AppMetrics,
   ) {
     super();
+    this.logger = logger.withContext(WelcomeProcessor.name);
   }
 
   async process(job: Job<WelcomeJobData>): Promise<void> {

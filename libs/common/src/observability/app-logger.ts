@@ -7,6 +7,37 @@ type Meta = Record<string, unknown>;
 
 type ContextOrMeta = string | Meta | undefined;
 
+export class ScopedLogger {
+  constructor(
+    private readonly parent: AppLogger,
+    private readonly context: string,
+  ) {}
+
+  log(message: any, meta?: Meta): void {
+    this.parent.log(message, { context: this.context, ...meta });
+  }
+
+  warn(message: any, meta?: Meta): void {
+    this.parent.warn(message, { context: this.context, ...meta });
+  }
+
+  error(message: any, metaOrStack?: string | Meta): void {
+    if (typeof metaOrStack === 'string') {
+      this.parent.error(message, { context: this.context, stack: metaOrStack });
+    } else {
+      this.parent.error(message, { context: this.context, ...metaOrStack });
+    }
+  }
+
+  debug(message: any, meta?: Meta): void {
+    this.parent.debug(message, { context: this.context, ...meta });
+  }
+
+  verbose(message: any, meta?: Meta): void {
+    this.parent.verbose(message, { context: this.context, ...meta });
+  }
+}
+
 @Injectable()
 export class AppLogger implements LoggerService {
   private readonly logger: winston.Logger;
@@ -37,6 +68,10 @@ export class AppLogger implements LoggerService {
     });
   }
 
+  withContext(context: string): ScopedLogger {
+    return new ScopedLogger(this, context);
+  }
+
   log(message: any, contextOrMeta?: ContextOrMeta): void {
     const [meta, context] = this.split(contextOrMeta);
     this.logger.info(this.toMessage(message), {
@@ -53,10 +88,6 @@ export class AppLogger implements LoggerService {
     });
   }
 
-  /**
-   * NestJS calls: error(message, trace, context)
-   * App code can call: error(message, { ...meta })
-   */
   error(message: any, traceOrMeta?: string | Meta, context?: string): void {
     if (typeof traceOrMeta === 'object' && traceOrMeta !== null) {
       this.logger.error(this.toMessage(message), {
