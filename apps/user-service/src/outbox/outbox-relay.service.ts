@@ -45,7 +45,10 @@ export class OutboxRelayService {
     this.isBatchInProgress = true;
 
     try {
-      const rows = await this.relayRepo.claimPending(this.batchSize);
+      const rows = await this.relayRepo.claimPending(
+        this.batchSize,
+        this.maxAttempts,
+      );
 
       await Promise.allSettled(
         rows.map((row) => {
@@ -89,6 +92,7 @@ export class OutboxRelayService {
     try {
       const recovered = await this.relayRepo.recoverStuck(
         this.processingTtlSeconds,
+        this.maxAttempts,
       );
       if (recovered.length > 0) {
         this.metrics.outboxRecoveredTotal.add(recovered.length);

@@ -3,15 +3,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { OutboxStatus } from '../enums/outbox-status.enum';
 
-@Index(['status', 'createdAt'], {
-  where: `"status" = '${OutboxStatus.PENDING}'`,
-})
 @Entity({ name: 'outbox' })
 export class OutboxEvent {
   @PrimaryGeneratedColumn('uuid')

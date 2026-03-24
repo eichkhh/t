@@ -9,52 +9,51 @@ import type { OutboxRow } from '../interfaces/outbox-row.interface';
 export class OutboxRelayRepository implements IOutboxRelayRepository {
   constructor(private readonly dataSource: DataSource) {}
 
-  async claimPending(limit: number): Promise<OutboxRow[]> {
-    const qr = this.dataSource.createQueryRunner();
+  private statusByAttempts(maxAttempts: number): () => string {
+    return () =>
+      `CASE WHEN attempts >= ${maxAttempts} THEN '${OutboxStatus.FAILED}' ELSE '${OutboxStatus.PENDING}' END`;
+  }
 
-    await qr.connect();
-    await qr.startTransaction();
+  async claimPending(limit: number, maxAttempts: number): Promise<OutboxRow[]> {
+    const [rows] = await this.dataSource.query<
+      [
+        {
+          id: string;
+          event_type: string;
+          payload_json: unknown;
+          metadata: Record<string, unknown> | null;
+        }[],
+        number,
+      ]
+    >(
+      `
+      WITH locked AS (
+        SELECT id
+        FROM outbox
+        WHERE status = $1
+          AND attempts < $4
+        ORDER BY created_at ASC
+        LIMIT $2
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE outbox o
+      SET
+        status     = $3,
+        attempts   = o.attempts + 1,
+        claimed_at = NOW()
+      FROM locked
+      WHERE o.id = locked.id
+      RETURNING o.id, o."type" AS event_type, o.payload_json, o.metadata
+      `,
+      [OutboxStatus.PENDING, limit, OutboxStatus.PROCESSING, maxAttempts],
+    );
 
-    try {
-      const pending = await qr.manager
-        .createQueryBuilder(OutboxEvent, 'event')
-        .select([
-          'event.id',
-          'event.type',
-          'event.payloadJson',
-          'event.metadata',
-        ])
-        .where('event.status = :status', { status: OutboxStatus.PENDING })
-        .orderBy('event.createdAt', 'ASC')
-        .limit(limit)
-        .setLock('pessimistic_write')
-        .setOnLocked('skip_locked')
-        .getMany();
-
-      if (pending.length === 0) {
-        await qr.commitTransaction();
-        return [];
-      }
-
-      await qr.manager
-        .createQueryBuilder()
-        .update(OutboxEvent)
-        .set({
-          status: OutboxStatus.PROCESSING,
-          attempts: () => 'attempts + 1',
-          claimedAt: () => 'NOW()',
-        })
-        .whereInIds(pending.map((e) => e.id))
-        .execute();
-
-      await qr.commitTransaction();
-      return pending;
-    } catch (e) {
-      await qr.rollbackTransaction();
-      throw e;
-    } finally {
-      await qr.release();
-    }
+    return rows.map((r) => ({
+      id: r.id,
+      type: r.event_type,
+      payloadJson: r.payload_json,
+      metadata: r.metadata,
+    }));
   }
 
   async markProcessed(id: string): Promise<void> {
@@ -69,21 +68,20 @@ export class OutboxRelayRepository implements IOutboxRelayRepository {
     await this.dataSource
       .createQueryBuilder()
       .update(OutboxEvent)
-      .set({
-        status: () =>
-          `CASE WHEN attempts >= ${maxAttempts} THEN '${OutboxStatus.FAILED}' ELSE '${OutboxStatus.PENDING}' END`,
-        claimedAt: null,
-      })
+      .set({ status: this.statusByAttempts(maxAttempts), claimedAt: null })
       .where('id = :id', { id })
       .execute();
   }
 
-  async recoverStuck(processingTtlSeconds: number): Promise<{ id: string }[]> {
+  async recoverStuck(
+    processingTtlSeconds: number,
+    maxAttempts: number,
+  ): Promise<{ id: string }[]> {
     const threshold = new Date(Date.now() - processingTtlSeconds * 1000);
     const result = await this.dataSource
       .createQueryBuilder()
       .update(OutboxEvent)
-      .set({ status: OutboxStatus.PENDING, claimedAt: null })
+      .set({ status: this.statusByAttempts(maxAttempts), claimedAt: null })
       .where('status = :status', { status: OutboxStatus.PROCESSING })
       .andWhere('claimed_at IS NOT NULL')
       .andWhere('claimed_at < :threshold', { threshold })

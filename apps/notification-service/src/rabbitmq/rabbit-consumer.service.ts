@@ -61,6 +61,7 @@ export class RabbitConsumerService implements OnModuleInit {
           'Failed to dispatch message; nack to DLQ',
           err instanceof Error ? err.stack : String(err),
         );
+
         channel.nack(msg, false, false);
       }
     });
